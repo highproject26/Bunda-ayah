@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesan untuk Bunda & Ayah - Dari Azzam</title>
+    
+    <!-- Three.js & FontAwesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #FAF6F0;
+            --bg-card: #FFFFFF;
+            --border-warm: #E8DCCB;
+            --text-main: #362D2A;
+            --text-sub: #6E6059;
+            --accent-warm: #C07A50;
+            --accent-gold: #D29F68;
+            --shadow-soft: rgba(100, 75, 60, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-deep); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-main); -webkit-tap-highlight-color: transparent; }
+
+        /* Canvas Three.js */
+        #webgl-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+        /* Efek Vignette Sinematik */
+        .vignette-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none;
+            background: radial-gradient(circle, rgba(54,45,42,0) 50%, rgba(40,30,25,0.45) 100%);
+        }
+
+        /* Overlay Layar Pembuka */
+        .welcome-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(250, 246, 240, 0.96); backdrop-filter: blur(12px); padding: 24px; text-align: center;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        .welcome-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+        .welcome-box {
+            max-width: 520px; width: 100%; background: var(--bg-card);
+            border: 1px solid var(--border-warm); border-radius: 24px;
+            padding: 40px 30px; box-shadow: 0 20px 40px var(--shadow-soft);
+        }
+        .welcome-tag { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent-warm); font-weight: 700; margin-bottom: 12px; }
+        .welcome-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; color: var(--text-main); margin-bottom: 16px; line-height: 1.2; }
+        .welcome-desc { font-size: 0.98rem; color: var(--text-sub); line-height: 1.7; margin-bottom: 32px; }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--accent-warm) 0%, #B0693F 100%);
+            color: #FFFFFF; border: none; padding: 16px 38px; font-size: 1rem; font-weight: 600;
+            border-radius: 50px; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(192, 122, 80, 0.3); display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(192, 122, 80, 0.4); }
+
+        /* Audio Controls Top Right */
+        .audio-bar-top {
+            position: fixed; top: 20px; right: 20px; z-index: 50;
+            display: flex; align-items: center; gap: 10px;
+            background: var(--bg-card); border: 1px solid var(--border-warm);
+            padding: 6px 14px 6px 6px; border-radius: 30px;
+            box-shadow: 0 4px 12px var(--shadow-soft);
+        }
+        .audio-control {
+            background: var(--accent-warm); color: white;
+            width: 34px; height: 34px; border-radius: 50%; display: flex;
+            justify-content: center; align-items: center; cursor: pointer; border: none;
+            transition: all 0.2s;
+        }
+        .audio-control:hover { transform: scale(1.05); }
+        .audio-text { font-size: 0.78rem; font-weight: 600; color: var(--text-sub); }
+
+        /* Modal Perjelas Teks & Foto */
+        .text-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 90;
+            background: rgba(54, 45, 42, 0.5); backdrop-filter: blur(10px);
+            display: flex; justify-content: center; align-items: center; padding: 20px;
+            opacity: 0; visibility: hidden; transition: all 0.3s ease;
+        }
+        .text-modal.visible { opacity: 1; visibility: visible; }
+        
+        .modal-card {
+            background: var(--bg-card); border: 1px solid var(--border-warm);
+            border-radius: 20px; max-width: 580px; width: 100%; padding: 32px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.25); transform: translateY(20px);
+            transition: transform 0.3s ease; position: relative; max-height: 85vh; overflow-y: auto;
+        }
+        .text-modal.visible .modal-card { transform: translateY(0); }
+        
+        .close-modal-btn {
+            position: absolute; top: 16px; right: 18px; background: transparent;
+            border: none; color: var(--text-sub); font-size: 1.2rem; cursor: pointer; padding: 5px;
+        }
+        .modal-tag { font-size: 0.75rem; font-weight: 700; color: var(--accent-warm); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+        .modal-body-text { font-size: 1.05rem; line-height: 1.8; color: var(--text-main); margin-bottom: 20px; white-space: pre-line; }
+        
+        .modal-photo-box {
+            width: 100%; height: 240px; background: #FAF2E8; border-radius: 12px;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+        .modal-photo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Navigasi Bawah */
+        .bottom-nav {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 50;
+            background: var(--bg-card); border: 1px solid var(--border-warm);
+            padding: 8px 20px; border-radius: 40px; display: flex; align-items: center;
+            gap: 16px; box-shadow: 0 10px 30px var(--shadow-soft);
+        }
+        .nav-btn {
+            background: transparent; border: 1px solid var(--border-warm); color: var(--text-main);
+            width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center;
+            align-items: center; cursor: pointer; transition: 0.2s;
+        }
+        .nav-btn:hover { background: var(--accent-warm); color: #FFF; border-color: var(--accent-warm); }
+        .nav-progress { font-size: 0.85rem; font-weight: 600; color: var(--accent-warm); }
+        .tap-hint { font-size: 0.75rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px; }
+
+        @media (max-width: 600px) {
+            .tap-hint { display: none; }
+            .modal-card { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+    <div class="vignette-overlay"></div>
+
+    <!-- Elemen Audio MP3 (Ganti URL dengan link Cloudinary musik kamu) -->
+    <audio id="bg-audio" preload="auto" crossorigin="anonymous">
+        <source src="URL_AUDIO_CLOUDINARY_KAMU.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Panel Kontrol Audio -->
+    <div class="audio-bar-top" id="audio-banner">
+        <span class="audio-text" id="audio-status-text">Musik Aktif</span>
+        <button class="audio-control" id="audio-toggle" title="Matikan / Nyalakan Musik">
+            <i class="fa-solid fa-music" id="audio-icon"></i>
+        </button>
+    </div>
+
+    <!-- Layar Pembuka -->
+    <div class="welcome-overlay" id="welcome-screen">
+        <div class="welcome-box">
+            <div class="welcome-tag">15 Oktober — Dari Azzam</div>
+            <h1 class="welcome-title">Pesan Tulus untuk Bunda & Ayah</h1>
+            <p class="welcome-desc">Sebuah ungkapan dari hati Azzam yang ditulis penuh rasa syukur dan kasih sayang.</p>
+            <button class="btn-start" id="btn-start">
+                <span>Klik disini</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="text-modal" id="text-modal">
+        <div class="modal-card">
+            <button class="close-modal-btn" id="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-tag" id="modal-tag">Pesan Paragraf</div>
+            <div class="modal-body-text" id="modal-text">...</div>
+            <div class="modal-photo-box">
+                <img id="modal-img" src="" alt="Kenangan">
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigasi -->
+    <div class="bottom-nav">
+        <button class="nav-btn" id="btn-prev"><i class="fa-solid fa-chevron-left"></i></button>
+        <span class="nav-progress" id="nav-progress">1 / 15</span>
+        <div class="tap-hint">
+            <i class="fa-solid fa-hand-pointer"></i>
+            <span>Tap layar untuk lanjut</span>
+        </div>
+        <button class="nav-btn" id="btn-next"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <script>
+        // DAFTAR URL FOTO DARI CLOUDINARY (Ganti 15 URL ini dengan link Cloudinary fotomu)
+        const PHOTO_URLS = [
+            "URL_FOTO_1_CLOUDINARY",
+            "URL_FOTO_2_CLOUDINARY",
+            "URL_FOTO_3_CLOUDINARY",
+            "URL_FOTO_4_CLOUDINARY",
+            "URL_FOTO_5_CLOUDINARY",
+            "URL_FOTO_6_CLOUDINARY",
+            "URL_FOTO_7_CLOUDINARY",
+            "URL_FOTO_8_CLOUDINARY",
+            "URL_FOTO_9_CLOUDINARY",
+            "URL_FOTO_10_CLOUDINARY",
+            "URL_FOTO_11_CLOUDINARY",
+            "URL_FOTO_12_CLOUDINARY",
+            "URL_FOTO_13_CLOUDINARY",
+            "URL_FOTO_14_CLOUDINARY",
+            "URL_FOTO_15_CLOUDINARY"
+        ];
+
+        // Teks Murni Asli Azzam
+        const MESSAGES = [
+            "Sekarang tepat tanggal 15 Oktober, tepat sehari setelah tanggal kelahiran bunda, Dan waktu dimana Azzam menulis pesan ini.",
+            "Dulu, ketika Azzam masih duduk di bangku SMP, Azzam berpikir apa sih suatu hal yang Azzam miliki namun banyak orang diluar sana sulit untuk mendapatkannya.",
+            "Jawabannya, bukan uang jajan yang banyak, bukan juga pakaian yang bagus, bukan juga tentang sekolah yang berakreditasi, atau yang lainnya.",
+            "Namun, adalah sebuah rasa kasih sayang yang tulus dari bunda kepada Azzam. Dari Azzam dilahirkan sampai detik ini, rasa kasih sayang ini memberikan Azzam suatu pelajaran tentang bagaimana rasa kasih sayang seorang bunda kepada anaknya memberikan banyak dampak yang baik pada anaknya.",
+            "Hal itu membuat Azzam lebih memahami bahwa rasa kasih sayang dari bunda itu adalah suatu hal yang sulit didapatkan banyak anak saat ini.",
+            "Bahkan rasa kasih sayang bunda kepada Azzam, menjadi sebuah mood booster disaat Azzam sedih, menjadi sebuah dorongan kuat bagi Azzam untuk terus memberikan dampak baik pada kehidupan ini, bukan hanya kepada manusia, namun untuk seluruh mahluk di bumi ini.",
+            "Azzam terus berusaha untuk membuat bunda selalu merasa bahagia, dan terus berusaha membalas kebaikan bunda, namun tentu belum bisa membalas seluruh kebaikan yang bunda berikan kepada Azzam.",
+            "Bunda juga selalu berusaha membuat anak-anak bunda senang, tenang, nyaman. Terkadang Azzam melihat dari wajah bunda yang seperti ingin menyampaikan kepada kita bahwa bunda ingin sekali kita bahagia, ingin sekali kita nyaman dengan bunda.",
+            "Disaat orang tua-orang tua diluar sana banyak yang berpikir bahwa mereka sudah menyayangi anak-anaknya, padahal anak-anaknya masih merasa kurang, malah terkadang bunda lah yang merasa kurang baik dalam menjaga dan menyayangi kita, disaat bunda udah ngelakuin semua yang terbaik buat kita. Justru kasih sayang bunda kepada kitalah yang jauh dari sekedar kata cukup.",
+            "Dan Ayah,\nKetika seseorang menyebutkan kata \"Ayah\", yang terpikirkan dari Azzam adalah seorang pemimpin kesatria yang sangat tangguh dan kuat, yang berusaha menjaga keutuhan keluarga ini, yang berusaha menjadi ayah yang membahagiakan kita, melindungi kita dan terus menjaga tanggung jawab dimanapun ayah berada.",
+            "Ayah adalah sosok yang mengajarkan kepada Azzam tentang menjadi seorang pemimpin yang bertaqwa, bertanggung jawab, dan tangguh. Disaat ayah-ayah diluar sana yang kabur dari tanggung jawabnya, menjadi sosok yang ditakuti oleh anak-anaknya, justru ayah membuat terkadang Azzam tidak percaya bahwa ada seorang Ayah di luar sana yang tidak menyayangi anak-anaknya, yang kabur dari tanggung jawabnya.",
+            "Ayah mengajarkan sebuah kepemimpinan dan ketegasan, Bunda mengajarkan sebuah kasih sayang dan kepekaan. Inilah yang membuat Azzam terus berusaha, bertekad, dan mendorong diri Azzam untuk terus berusaha menjadi yang terbaik versi diri Azzam sendiri dalam ketaqwaan dan kerendahan hati juga bermanfaat untuk semua mahluk di muka bumi ini.",
+            "Terimakasih Bunda...\nTerimakasih Ayah...",
+            "sudah membangun keluarga ini, yang penuh dengan kebahagiaan, kesenangan, keceriaan, dan penuh dengan nilai-nilai yang baik untuk kita semua...",
+            "Sayang yang sebesar-besarnya untuk Bunda, untuk Ayah.\n\nPanjang umur dan sehat selalu…"
+        ];
+
+        let scene, camera, renderer, cardMeshes = [];
+        let currentIndex = 0;
+        let targetCamPos = new THREE.Vector3(0, 0, 10);
+        let targetLookAt = new THREE.Vector3(0, 0, 0);
+        let currentLookAt = new THREE.Vector3(0, 0, 0);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        const bgAudio = document.getElementById('bg-audio');
+        bgAudio.volume = 0.5;
+
+        function toggleAudio() {
+            if (bgAudio.paused) {
+                bgAudio.play().then(() => updateAudioUI(true)).catch(e => console.log("Audio diblokir:", e));
+            } else {
+                bgAudio.pause();
+                updateAudioUI(false);
+            }
+        }
+
+        function updateAudioUI(isPlaying) {
+            const icon = document.getElementById('audio-icon');
+            const text = document.getElementById('audio-status-text');
+            if (isPlaying) {
+                icon.className = "fa-solid fa-music";
+                text.innerText = "Musik Aktif";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                text.innerText = "Musik Mati";
+            }
+        }
+
+        function init3D() {
+            const container = document.getElementById('webgl-container');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0xFAF6F0, 0.025);
+
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+            const light = new THREE.DirectionalLight(0xD29F68, 0.8);
+            light.position.set(10, 20, 10);
+            scene.add(light);
+
+            createCards();
+            animate();
+        }
+
+        // Fungsi Auto Crop Tengah (object-fit: cover untuk Canvas)
+        function drawImageCover(ctx, img, x, y, w, h) {
+            const imgRatio = img.width / img.height;
+            const targetRatio = w / h;
+            let renderW = w, renderH = h, offsetX = 0, offsetY = 0;
+
+            if (imgRatio > targetRatio) {
+                renderW = h * imgRatio;
+                offsetX = (w - renderW) / 2;
+            } else {
+                renderH = w / imgRatio;
+                offsetY = (h - renderH) / 2;
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, 14);
+            ctx.clip();
+            ctx.drawImage(img, x + offsetX, y + offsetY, renderW, renderH);
+            ctx.restore();
+        }
+
+        function createCardTexture(text, index) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 680;
+            const ctx = canvas.getContext('2d');
+
+            const texture = new THREE.CanvasTexture(canvas);
+
+            // Background Kartu
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath(); ctx.roundRect(0, 0, 512, 680, 24); ctx.fill();
+            ctx.strokeStyle = '#E8DCCB'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.roundRect(10, 10, 492, 660, 18); ctx.stroke();
+
+            // Area Kotak Foto di Kartu
+            ctx.fillStyle = '#FAF2E8';
+            ctx.beginPath(); ctx.roundRect(35, 35, 442, 260, 14); ctx.fill();
+
+            // Memuat Gambar dari Cloudinary dengan crossOrigin agar aman
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = PHOTO_URLS[index];
+            img.onload = () => {
+                drawImageCover(ctx, img, 35, 35, 442, 260);
+                drawCardText(ctx, text, index);
+                texture.needsUpdate = true;
+            };
+            img.onerror = () => {
+                ctx.fillStyle = '#C07A50'; ctx.font = '600 15px "Plus Jakarta Sans"'; ctx.textAlign = 'center';
+                ctx.fillText(`📷 Gagal memuat foto ${index + 1}`, 256, 170);
+                drawCardText(ctx, text, index);
+                texture.needsUpdate = true;
+            };
+
+            return texture;
+        }
+
+        function drawCardText(ctx, text, index) {
+            ctx.fillStyle = '#C07A50'; ctx.font = 'bold 14px "Plus Jakarta Sans"'; ctx.textAlign = 'left';
+            ctx.fillText("BAGIAN " + (index + 1) + " / " + MESSAGES.length, 40, 340);
+
+            ctx.fillStyle = '#362D2A'; ctx.font = '500 18px "Plus Jakarta Sans"';
+            wrapText(ctx, text, 40, 380, 432, 28);
+        }
+
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+            const lines = text.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                const words = lines[i].split(' ');
+                let line = '';
+                for (let n = 0; n < words.length; n++) {
+                    let testLine = line + words[n] + ' ';
+                    if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                        ctx.fillText(line, x, y);
+                        line = words[n] + ' ';
+                        y += lineHeight;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                ctx.fillText(line, x, y);
+                y += lineHeight;
+            }
+        }
+
+        function createCards() {
+            const geometry = new THREE.PlaneGeometry(5, 6.6);
+
+            MESSAGES.forEach((msg, idx) => {
+                const texture = createCardTexture(msg, idx);
+                const material = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide, transparent: true, opacity: 0.98 });
+                const mesh = new THREE.Mesh(geometry, material);
+
+                const angle = idx * 0.5;
+                const radius = 6;
+                const x = Math.sin(angle) * radius + (Math.random() - 0.5) * 4;
+                const y = (Math.random() - 0.5) * 3;
+                const z = -idx * 9;
+
+                mesh.position.set(x, y, z);
+                mesh.rotation.y = (Math.random() - 0.5) * 0.3;
+                mesh.rotation.x = (Math.random() - 0.5) * 0.1;
+
+                mesh.userData = { id: idx, text: msg, baseY: y, offset: idx };
+                scene.add(mesh);
+                cardMeshes.push(mesh);
+            });
+        }
+
+        function navigateToCard(index) {
+            if (index < 0 || index >= cardMeshes.length) return;
+            currentIndex = index;
+
+            const targetCard = cardMeshes[currentIndex];
+            targetCamPos.set(targetCard.position.x, targetCard.position.y, targetCard.position.z + 7);
+            targetLookAt.copy(targetCard.position);
+
+            document.getElementById('nav-progress').innerText = `${currentIndex + 1} / ${MESSAGES.length}`;
+        }
+
+        function openModal(text, index) {
+            document.getElementById('modal-tag').innerText = `Bagian ${index + 1} / ${MESSAGES.length}`;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('modal-img').src = PHOTO_URLS[index];
+            document.getElementById('text-modal').classList.add('visible');
+        }
+
+        function closeModal() {
+            document.getElementById('text-modal').classList.remove('visible');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() * 0.0015;
+            cardMeshes.forEach((mesh, i) => {
+                mesh.position.y = mesh.userData.baseY + Math.sin(time + mesh.userData.offset) * 0.12;
+            });
+
+            camera.position.lerp(targetCamPos, 0.06);
+            currentLookAt.lerp(targetLookAt, 0.06);
+            camera.lookAt(currentLookAt);
+            renderer.render(scene, camera);
+        }
+
+        function setupEvents() {
+            document.getElementById('btn-start').addEventListener('click', () => {
+                document.getElementById('welcome-screen').classList.add('hidden');
+                bgAudio.play().then(() => updateAudioUI(true)).catch(e => console.log("Audio diblokir:", e));
+                navigateToCard(0);
+            });
+
+            document.getElementById('audio-toggle').addEventListener('click', toggleAudio);
+            document.getElementById('audio-banner').addEventListener('click', toggleAudio);
+
+            document.getElementById('btn-next').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentIndex < cardMeshes.length - 1) {
+                    navigateToCard(currentIndex + 1);
+                } else {
+                    document.getElementById('welcome-screen').classList.remove('hidden');
+                    if (!bgAudio.paused) {
+                        bgAudio.pause();
+                        bgAudio.currentTime = 0;
+                        updateAudioUI(false);
+                    }
+                    currentIndex = 0;
+                }
+            });
+
+            document.getElementById('btn-prev').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentIndex > 0) navigateToCard(currentIndex - 1);
+            });
+
+            document.getElementById('close-modal').addEventListener('click', closeModal);
+            document.getElementById('text-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'text-modal') closeModal();
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (e.target.closest('.welcome-overlay') || e.target.closest('.bottom-nav') || e.target.closest('.audio-bar-top') || e.target.closest('.text-modal')) return;
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(cardMeshes);
+
+                if (intersects.length > 0) {
+                    const clickedIdx = intersects[0].object.userData.id;
+                    if (clickedIdx === currentIndex) {
+                        openModal(intersects[0].object.userData.text, clickedIdx);
+                    } else {
+                        navigateToCard(clickedIdx);
+                    }
+                } else {
+                    if (currentIndex === MESSAGES.length - 1) {
+                        document.getElementById('welcome-screen').classList.remove('hidden');
+                        if (!bgAudio.paused) {
+                            bgAudio.pause();
+                            bgAudio.currentTime = 0;
+                            updateAudioUI(false);
+                        }
+                        currentIndex = 0;
+                    } else if (currentIndex < cardMeshes.length - 1) {
+                        navigateToCard(currentIndex + 1);
+                    }
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        window.onload = () => {
+            init3D();
+            setupEvents();
+            updateAudioUI(false);
+        };
+    </script>
+</body>
+</html>
